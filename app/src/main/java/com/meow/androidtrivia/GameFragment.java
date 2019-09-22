@@ -70,6 +70,14 @@ public class GameFragment extends Fragment {
         );
     }
 
+    public Question getCurrentQuestion() {
+        return currentQuestion;
+    }
+
+    public List<String> getAnswers() {
+        return answers;
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -155,6 +163,10 @@ public class GameFragment extends Fragment {
             }
             this.text = text;
             this.answers = answers;
+        }
+
+        public String getText() {
+            return text;
         }
     }
 }
