@@ -153,7 +153,7 @@ public class GameFragment extends Fragment {
         }
     }
 
-    private class Question {
+    public class Question {
         private String text;
         private List<String> answers;
 
