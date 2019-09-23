@@ -2,10 +2,14 @@ package com.meow.androidtrivia;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavDirections;
+import androidx.navigation.Navigation;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,9 +26,9 @@ import java.util.Objects;
 public class GameFragment extends Fragment {
     private List<Question> questions = new ArrayList<>();
     private Question currentQuestion;
-    private List<String> answers = new ArrayList<>();
+    private List<String> answers;
     private int questionIndex = 0;
-    private final int numQuestions = Math.min((questions.size() + 1) / 2, 3);
+    private final int numQuestions;
 
     // just add a bunch of questions and answers
     public GameFragment() {
@@ -68,6 +72,8 @@ public class GameFragment extends Fragment {
                 "Mark a layout for Data Binding?",
                 "<layout>", "<binding>", "<data-binding>", "<dbinding>"
         );
+        // after adding, finalize the number of questions
+        numQuestions = Math.min((questions.size() + 1) / 2, 3);
     }
 
     public Question getCurrentQuestion() {
@@ -78,53 +84,76 @@ public class GameFragment extends Fragment {
         return answers;
     }
 
+    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        FragmentGameBinding binding = DataBindingUtil.inflate(
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState
+    ) {
+        final FragmentGameBinding binding = DataBindingUtil.inflate(
                 inflater, R.layout.fragment_game, container, false
         );
         randomizeQuestions();
+
+        // bind the XML variable to this entire fragment
         binding.setGame(this);
+
+        // set on-click listener for the submit button
         binding.submitButton.setOnClickListener(view -> {
-            int checkedId = binding.questionRadioGroup.getCheckedRadioButtonId();
-            if (checkedId != -1) {
-                int answerIndex = 0;
-                switch (checkedId) {
-                    case R.id.second_answer_radio_button2:
-                        answerIndex = 1;
-                        break;
-                    case R.id.third_answer_radio_button3:
-                        answerIndex = 2;
-                        break;
-                    case R.id.fourth_answer_radio_button4:
-                        answerIndex = 3;
-                        break;
-                }
-                if (Objects.equals(answers.get(answerIndex), currentQuestion.answers.get(0))) {
-                    questionIndex++;
-                    if (questionIndex < numQuestions) {
-                        // to next question
-                        currentQuestion = questions.get(questionIndex);
-                        setQuestions();
-                        // refresh data in binding
-                        binding.invalidateAll();
-                    } else {
-                        // TODO: WON!
-                        throw new UnsupportedOperationException("Not implemented");
-                    }
-                } else {
-                    // TODO: LOSE!
-                    throw new UnsupportedOperationException("Not implemented");
-                }
+            final int checkedId = binding.questionRadioGroup.getCheckedRadioButtonId();
+            // if nothing is checked (the result will be -1), exit immediately
+            if (checkedId == -1) {
+                return;
             }
+            int answerIndex = 0;
+            switch (checkedId) {
+                case R.id.second_answer_radio_button2:
+                    answerIndex = 1;
+                    break;
+                case R.id.third_answer_radio_button3:
+                    answerIndex = 2;
+                    break;
+                case R.id.fourth_answer_radio_button4:
+                    answerIndex = 3;
+                    break;
+            }
+            // The first answer in the original list will always be the correct one
+            if (Objects.equals(answers.get(answerIndex), currentQuestion.answers.get(0))) {
+                questionIndex++;
+                if (questionIndex < numQuestions) {
+                    // to next question
+                    currentQuestion = questions.get(questionIndex);
+                    setQuestions();
+                    // refresh data in binding, and return early
+                    binding.invalidateAll();
+                    return;
+                }
+                // (4) We've won here. Navigate to gameWonFragment
+                // Find our current view, then start the navigation
+                final NavDirections gameWonTarget =
+                        GameFragmentDirections.actionGameFragmentToGameWonFragment(
+                                // provide number of questions and correct answers
+                                numQuestions, questionIndex
+                        );
+                Navigation.findNavController(view).navigate(gameWonTarget);
+                // (5) also return early to reduce code nesting
+                return;
+            }
+            // (6) You lost. Find our current view, then navigate to the gameOverFragment
+            final NavDirections gameOverTarget =
+                    GameFragmentDirections.actionGameFragmentToGameOverFragment(
+                            // provide number of questions and correct answers
+                            numQuestions, questionIndex
+                    );
+            Navigation.findNavController(view).navigate(gameOverTarget);
         });
         return binding.getRoot();
     }
 
     private void addQuestion(String q, String a1, String a2, String a3, String a4) {
-        List<String> answers = Arrays.asList(a1, a2, a3, a4);
-        Question qa = new Question(q, answers);
+        final List<String> answers = Arrays.asList(a1, a2, a3, a4);
+        final Question qa = new Question(q, answers);
         questions.add(qa);
     }
 
@@ -137,20 +166,26 @@ public class GameFragment extends Fragment {
 
     private void setQuestions() {
         currentQuestion = questions.get(questionIndex);
-        Collections.copy(answers, currentQuestion.answers);
+        // copy out the answers
+        answers = new ArrayList<>(currentQuestion.answers);
+        // and shuffle the answers
         Collections.shuffle(answers);
         // Set question title
-        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
-        if (appCompatActivity != null) {
-            ActionBar bar = appCompatActivity.getSupportActionBar();
-            if (bar != null) {
-                String str = getString(
-                        R.string.title_android_trivia_question,
-                        questionIndex + 1, numQuestions
-                );
-                bar.setTitle(str);
-            }
+        final AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
+        // if appCompatActivity is null, exit early
+        if (appCompatActivity == null) {
+            return;
         }
+        final ActionBar bar = appCompatActivity.getSupportActionBar();
+        // same with support for ActionBar
+        if (bar == null) {
+            return;
+        }
+        final String str = getString(
+                R.string.title_android_trivia_question,
+                questionIndex + 1, numQuestions
+        );
+        bar.setTitle(str);
     }
 
     public class Question {

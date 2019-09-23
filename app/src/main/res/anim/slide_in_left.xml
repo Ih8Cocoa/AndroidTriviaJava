@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Translate animation controls the sliding effect.
+         You can make it slide horizontally (through fromXDelta and toXDelta),
+         vertically (fromYDelta, toYDelta),
+         or combine all 4 attributes and make it slide however you want -->
+    <translate
+        android:fromXDelta="-100%"
+        android:toXDelta="0"
+        android:fromYDelta="0"
+        android:toYDelta="0"
+        android:duration="@android:integer/config_shortAnimTime" />
+
+</set>

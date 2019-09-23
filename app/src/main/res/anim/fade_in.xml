@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Alpha tag controls the fading.
+         Alpha 0 is invisible, while alpha 1 is fully visible.
+         Control the animation time through android:duration and @android/integer -->
+    <alpha android:fromAlpha="0" android:toAlpha="1"
+        android:duration="@android:integer/config_mediumAnimTime" />
+</set>
